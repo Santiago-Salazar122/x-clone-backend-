@@ -41,13 +41,20 @@ public class UserService {
 
         boolean passwordMatches = passwordEncoder.matches(
                 password,
-                user.getPassword()
-        );
+                user.getPassword());
 
         if (!passwordMatches) {
             return null;
         }
 
         return user;
+    }
+
+    public User findByUsername(String username) {
+        return userRepository.findByUsername(username);
+    }
+
+    public User updateUser(User user) {
+        return userRepository.save(user);
     }
 }
