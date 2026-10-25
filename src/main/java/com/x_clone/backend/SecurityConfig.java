@@ -13,29 +13,34 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import com.x_clone.backend.security.JwtAuthenticationFilter;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http)
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            JwtAuthenticationFilter jwtAuthenticationFilter)
             throws Exception {
 
         http
-            .csrf(csrf -> csrf.disable())
-            .cors(Customizer.withDefaults())
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-            )
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/api/users/register",
-                    "/api/users/login",
-                    "/api/users/test"
-                ).permitAll()
-                .anyRequest().permitAll()
-            );
+                .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class)
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/api/users/register",
+                                "/api/users/login",
+                                "/api/users/test")
+                        .permitAll()
+                        .anyRequest().authenticated());
 
         return http.build();
     }
@@ -45,16 +50,13 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(
-            List.of("http://localhost:5173")
-        );
+                List.of("http://localhost:5175"));
         configuration.setAllowedMethods(
-            List.of("GET", "POST", "PUT", "DELETE", "OPTIONS")
-        );
+                List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source =
-            new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 
         source.registerCorsConfiguration("/**", configuration);
 

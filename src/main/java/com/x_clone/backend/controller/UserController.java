@@ -15,142 +15,150 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
 import jakarta.servlet.http.HttpSession;
 import java.util.Map;
+import com.x_clone.backend.security.JwtService;
 
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "http://localhost:5173")
 public class UserController {
 
-    private final UserService userService;
+        private final UserService userService;
+        private final JwtService jwtService;
 
-    public UserController(UserService userService) {
-        this.userService = userService;
-    }
-
-    @GetMapping("/test")
-    public String test() {
-        return "El controlador de usuarios funciona correctamente";
-    }
-
-    @GetMapping("/{username}")
-    public ResponseEntity<Map<String, String>> getUserProfile(
-            @PathVariable String username) {
-
-        User user = userService.findByUsername(
-                username.trim().toLowerCase());
-
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "Usuario no encontrado"));
+        public UserController(
+                        UserService userService,
+                        JwtService jwtService) {
+                this.userService = userService;
+                this.jwtService = jwtService;
         }
 
-        return ResponseEntity.ok(Map.of(
-                "id", user.getId().toString(),
-                "username", user.getUsername(),
-                "name", user.getName()));
-    }
-
-    @PutMapping("/{username}")
-    public ResponseEntity<Map<String, String>> updateUserProfile(
-            @PathVariable String username,
-            @RequestBody Map<String, String> profileData,
-            HttpSession session) {
-
-        Long authenticatedUserId = (Long) session.getAttribute("authenticatedUserId");
-
-        if (authenticatedUserId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("message", "Debes iniciar sesión para editar el perfil"));
+        @GetMapping("/test")
+        public String test() {
+                return "El controlador de usuarios funciona correctamente";
         }
 
-        User user = userService.findByUsername(
-                username.trim().toLowerCase());
+        @GetMapping("/{username}")
+        public ResponseEntity<Map<String, String>> getUserProfile(
+                        @PathVariable String username) {
 
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "Usuario no encontrado"));
+                User user = userService.findByUsername(
+                                username.trim().toLowerCase());
+
+                if (user == null) {
+                        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                        .body(Map.of("message", "Usuario no encontrado"));
+                }
+
+                return ResponseEntity.ok(Map.of(
+                                "id", user.getId().toString(),
+                                "username", user.getUsername(),
+                                "name", user.getName()));
         }
 
-        if (!authenticatedUserId.equals(user.getId())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("message", "No puedes editar el perfil de otro usuario"));
+        @PutMapping("/{username}")
+        public ResponseEntity<Map<String, String>> updateUserProfile(
+                        @PathVariable String username,
+                        @RequestBody Map<String, String> profileData,
+                        jakarta.servlet.http.HttpServletRequest request) {
+
+                Long authenticatedUserId = (Long) request.getAttribute("authenticatedUserId");
+
+                if (authenticatedUserId == null) {
+                        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                                        .body(Map.of("message", "Debes iniciar sesión para editar el perfil"));
+                }
+
+                User user = userService.findByUsername(
+                                username.trim().toLowerCase());
+
+                if (user == null) {
+                        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                        .body(Map.of("message", "Usuario no encontrado"));
+                }
+
+                if (!authenticatedUserId.equals(user.getId())) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                        .body(Map.of("message", "No puedes editar el perfil de otro usuario"));
+                }
+
+                String name = profileData.get("name");
+
+                if (name == null || name.isBlank()) {
+                        return ResponseEntity.badRequest()
+                                        .body(Map.of("message", "El nombre es obligatorio"));
+                }
+
+                user.setName(name.trim());
+                userService.updateUser(user);
+
+                return ResponseEntity.ok(Map.of(
+                                "id", user.getId().toString(),
+                                "username", user.getUsername(),
+                                "name", user.getName()));
         }
 
-        String name = profileData.get("name");
+        @PostMapping("/register")
+        public ResponseEntity<Map<String, String>> registerUser(
+                        @RequestBody User user) {
 
-        if (name == null || name.isBlank()) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "El nombre es obligatorio"));
+                if (user.getUsername() == null || user.getUsername().isBlank()
+                                || user.getName() == null || user.getName().isBlank()
+                                || user.getEmail() == null || user.getEmail().isBlank()
+                                || user.getPassword() == null || user.getPassword().isBlank()) {
+
+                        return ResponseEntity.badRequest()
+                                        .body(Map.of("message", "Todos los campos son obligatorios"));
+                }
+
+                if (userService.usernameExists(user.getUsername())) {
+                        return ResponseEntity.status(HttpStatus.CONFLICT)
+                                        .body(Map.of("message", "El nombre de usuario ya existe"));
+                }
+
+                if (userService.emailExists(user.getEmail())) {
+                        return ResponseEntity.status(HttpStatus.CONFLICT)
+                                        .body(Map.of("message", "El correo electrónico ya está registrado"));
+                }
+
+                userService.saveUser(user);
+
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(Map.of("message", "Usuario registrado correctamente"));
         }
 
-        user.setName(name.trim());
-        userService.updateUser(user);
+        @PostMapping("/login")
+        public ResponseEntity<Map<String, String>> loginUser(
+                        @RequestBody Map<String, String> credentials,
+                        HttpSession session) {
 
-        return ResponseEntity.ok(Map.of(
-                "id", user.getId().toString(),
-                "username", user.getUsername(),
-                "name", user.getName()));
-    }
+                String email = credentials.get("email");
+                String password = credentials.get("password");
 
-    @PostMapping("/register")
-    public ResponseEntity<Map<String, String>> registerUser(
-            @RequestBody User user) {
+                if (email == null || email.isBlank()
+                                || password == null || password.isBlank()) {
+                        return ResponseEntity.badRequest()
+                                        .body(Map.of("message", "Ingresa el correo y la contraseña"));
+                }
 
-        if (user.getUsername() == null || user.getUsername().isBlank()
-                || user.getName() == null || user.getName().isBlank()
-                || user.getEmail() == null || user.getEmail().isBlank()
-                || user.getPassword() == null || user.getPassword().isBlank()) {
+                User user = userService.login(
+                                email.trim().toLowerCase(),
+                                password);
 
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Todos los campos son obligatorios"));
+                if (user == null) {
+                        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                                        .body(Map.of("message", "Correo o contraseña incorrectos"));
+                }
+
+                String token = jwtService.generateToken(
+                                user.getId(),
+                                user.getUsername());
+
+                return ResponseEntity.ok(Map.of(
+                                "message", "Inicio de sesión correcto",
+                                "token", token,
+                                "id", user.getId().toString(),
+                                "name", user.getName(),
+                                "username", user.getUsername(),
+                                "email", user.getEmail()));
         }
-
-        if (userService.usernameExists(user.getUsername())) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("message", "El nombre de usuario ya existe"));
-        }
-
-        if (userService.emailExists(user.getEmail())) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("message", "El correo electrónico ya está registrado"));
-        }
-
-        userService.saveUser(user);
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(Map.of("message", "Usuario registrado correctamente"));
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> loginUser(
-            @RequestBody Map<String, String> credentials,
-            HttpSession session) {
-
-        String email = credentials.get("email");
-        String password = credentials.get("password");
-
-        if (email == null || email.isBlank()
-                || password == null || password.isBlank()) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Ingresa el correo y la contraseña"));
-        }
-
-        User user = userService.login(
-                email.trim().toLowerCase(),
-                password);
-
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("message", "Correo o contraseña incorrectos"));
-        }
-
-        session.setAttribute("authenticatedUserId", user.getId());
-
-        return ResponseEntity.ok(Map.of(
-                "message", "Inicio de sesión correcto",
-                "id", user.getId().toString(),
-                "name", user.getName(),
-                "username", user.getUsername(),
-                "email", user.getEmail()));
-    }
 }
