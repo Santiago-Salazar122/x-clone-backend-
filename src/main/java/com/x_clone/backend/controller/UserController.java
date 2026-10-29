@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import jakarta.servlet.http.HttpSession;
 import java.util.Map;
 import com.x_clone.backend.security.JwtService;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -35,6 +36,27 @@ public class UserController {
         @GetMapping("/test")
         public String test() {
                 return "El controlador de usuarios funciona correctamente";
+        }
+
+        @GetMapping("/search")
+        public ResponseEntity<List<Map<String, String>>> searchUsers(
+                        @org.springframework.web.bind.annotation.RequestParam String query) {
+
+                if (query == null || query.isBlank()) {
+                        return ResponseEntity.ok(List.of());
+                }
+
+                List<User> users = userService.searchUsers(query.trim());
+
+                List<Map<String, String>> results = users.stream()
+                                .limit(10)
+                                .map(user -> Map.of(
+                                                "id", user.getId().toString(),
+                                                "username", user.getUsername(),
+                                                "name", user.getName()))
+                                .toList();
+
+                return ResponseEntity.ok(results);
         }
 
         @GetMapping("/{username}")
