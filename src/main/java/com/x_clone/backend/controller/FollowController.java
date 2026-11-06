@@ -1,9 +1,12 @@
-
 package com.x_clone.backend.controller;
 
+import com.x_clone.backend.dto.UserFollowDTO;
 import com.x_clone.backend.model.Follow;
+import com.x_clone.backend.model.User;
 import com.x_clone.backend.service.FollowService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +22,7 @@ public class FollowController {
     public FollowController(FollowService followService) {
         this.followService = followService;
     }
+    
 
     @PostMapping("/{username}")
     public ResponseEntity<Map<String, String>> followUser(
@@ -82,5 +86,57 @@ public class FollowController {
         return ResponseEntity.ok(Map.of(
                 "isFollowing",
                 followService.isFollowing(followerId, username)));
+    }
+
+    @GetMapping("/{username}/followers")
+    public ResponseEntity<Page<UserFollowDTO>> getFollowers(
+            @PathVariable String username,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        try {
+            Page<Follow> follows = followService.getFollowers(
+                    username,
+                    PageRequest.of(page, size)
+            );
+
+            Page<UserFollowDTO> users = follows.map(follow ->
+                    convertToDTO(follow.getFollower()));
+
+            return ResponseEntity.ok(users);
+
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/{username}/following")
+    public ResponseEntity<Page<UserFollowDTO>> getFollowing(
+            @PathVariable String username,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        try {
+            Page<Follow> follows = followService.getFollowing(
+                    username,
+                    PageRequest.of(page, size)
+            );
+
+            Page<UserFollowDTO> users = follows.map(follow ->
+                    convertToDTO(follow.getFollowed()));
+
+            return ResponseEntity.ok(users);
+
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    private UserFollowDTO convertToDTO(User user) {
+        return new UserFollowDTO(
+                user.getId(),
+                user.getUsername(),
+                user.getName()
+        );
     }
 }

@@ -7,6 +7,8 @@ import com.x_clone.backend.repository.FollowRepository;
 import com.x_clone.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -114,5 +116,29 @@ public class FollowService {
         }
 
         return followRepository.findByFollower(user);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Follow> getFollowers(String username, Pageable pageable) {
+        User user = userRepository.findByUsername(
+                username.trim().replaceFirst("^@", "").toLowerCase());
+
+        if (user == null) {
+            throw new IllegalArgumentException("Usuario no encontrado");
+        }
+
+        return followRepository.findFollowersOrderedByName(user, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Follow> getFollowing(String username, Pageable pageable) {
+        User user = userRepository.findByUsername(
+                username.trim().replaceFirst("^@", "").toLowerCase());
+
+        if (user == null) {
+            throw new IllegalArgumentException("Usuario no encontrado");
+        }
+
+        return followRepository.findFollowingOrderedByName(user, pageable);
     }
 }
