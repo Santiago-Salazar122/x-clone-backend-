@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 import java.util.Map;
@@ -53,13 +54,27 @@ public class PostController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Map<String, Object>>> getAllPosts() {
-        List<Map<String, Object>> posts = postService.getAllPosts()
+    public ResponseEntity<Map<String, Object>> getAllPosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Page<Post> postsPage = postService.getAllPosts(page, size);
+
+        List<Map<String, Object>> posts = postsPage.getContent()
                 .stream()
                 .map(this::toPostResponse)
                 .toList();
 
-        return ResponseEntity.ok(posts);
+        Map<String, Object> response = Map.of(
+                "content", posts,
+                "number", postsPage.getNumber(),
+                "size", postsPage.getSize(),
+                "totalElements", postsPage.getTotalElements(),
+                "totalPages", postsPage.getTotalPages(),
+                "last", postsPage.isLast(),
+                "first", postsPage.isFirst());
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/user/{username}")

@@ -6,6 +6,9 @@ import com.x_clone.backend.model.User;
 import com.x_clone.backend.repository.PostRepository;
 import com.x_clone.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 
@@ -44,8 +47,15 @@ public class PostService {
         return postRepository.save(post);
     }
 
-    public List<Post> getAllPosts() {
-        return postRepository.findAllByOrderByCreatedAtDesc();
+    public Page<Post> getAllPosts(int page, int size) {
+        PageRequest pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(
+                        Sort.Order.desc("createdAt"),
+                        Sort.Order.desc("id")));
+
+        return postRepository.findAll(pageable);
     }
 
     public List<Post> getPostsByUsername(String username) {
