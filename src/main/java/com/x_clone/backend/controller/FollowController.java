@@ -22,7 +22,6 @@ public class FollowController {
     public FollowController(FollowService followService) {
         this.followService = followService;
     }
-    
 
     @PostMapping("/{username}")
     public ResponseEntity<Map<String, String>> followUser(
@@ -43,6 +42,30 @@ public class FollowController {
                     Map.of(
                             "message", "Ahora sigues a " + username,
                             "createdAt", follow.getCreatedAt().toString()));
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", exception.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{username}")
+    public ResponseEntity<Map<String, String>> unfollowUser(
+            @PathVariable String username,
+            HttpServletRequest request) {
+
+        Long followerId = (Long) request.getAttribute("authenticatedUserId");
+
+        if (followerId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Debes iniciar sesión"));
+        }
+
+        try {
+            followService.unfollowUser(followerId, username);
+
+            return ResponseEntity.ok(
+                    Map.of("message", "Has dejado de seguir a " + username));
+
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.badRequest()
                     .body(Map.of("message", exception.getMessage()));
@@ -97,11 +120,9 @@ public class FollowController {
         try {
             Page<Follow> follows = followService.getFollowers(
                     username,
-                    PageRequest.of(page, size)
-            );
+                    PageRequest.of(page, size));
 
-            Page<UserFollowDTO> users = follows.map(follow ->
-                    convertToDTO(follow.getFollower()));
+            Page<UserFollowDTO> users = follows.map(follow -> convertToDTO(follow.getFollower()));
 
             return ResponseEntity.ok(users);
 
@@ -119,11 +140,9 @@ public class FollowController {
         try {
             Page<Follow> follows = followService.getFollowing(
                     username,
-                    PageRequest.of(page, size)
-            );
+                    PageRequest.of(page, size));
 
-            Page<UserFollowDTO> users = follows.map(follow ->
-                    convertToDTO(follow.getFollowed()));
+            Page<UserFollowDTO> users = follows.map(follow -> convertToDTO(follow.getFollowed()));
 
             return ResponseEntity.ok(users);
 
@@ -136,7 +155,6 @@ public class FollowController {
         return new UserFollowDTO(
                 user.getId(),
                 user.getUsername(),
-                user.getName()
-        );
+                user.getName());
     }
 }

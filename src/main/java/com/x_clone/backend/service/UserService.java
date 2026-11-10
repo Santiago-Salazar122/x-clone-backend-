@@ -55,6 +55,10 @@ public class UserService {
         return userRepository.findByUsername(username);
     }
 
+    public User findById(Long id) {
+        return userRepository.findById(id).orElse(null);
+    }
+
     public List<User> searchUsers(String query) {
         List<User> usersByUsername = userRepository.findByUsernameContainingIgnoreCase(query);
 

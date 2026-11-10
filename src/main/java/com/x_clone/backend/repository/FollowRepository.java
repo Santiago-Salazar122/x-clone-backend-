@@ -12,27 +12,29 @@ import java.util.List;
 
 public interface FollowRepository extends JpaRepository<Follow, Long> {
 
-    boolean existsByFollowerAndFollowed(User follower, User followed);
+        boolean existsByFollowerAndFollowed(User follower, User followed);
 
-    long countByFollower(User follower);
+        long countByFollower(User follower);
 
-    long countByFollowed(User followed);
+        long countByFollowed(User followed);
 
-    List<Follow> findByFollower(User follower);
+        List<Follow> findByFollower(User follower);
 
-    List<Follow> findByFollowed(User followed);
+        List<Follow> findByFollowed(User followed);
 
-    Page<Follow> findByFollowed(User followed, Pageable pageable);
+        Page<Follow> findByFollowed(User followed, Pageable pageable);
 
-    Page<Follow> findByFollower(User follower, Pageable pageable);
+        Page<Follow> findByFollower(User follower, Pageable pageable);
 
-    @Query("SELECT f FROM Follow f WHERE f.followed = :user ORDER BY LOWER(f.follower.name) ASC")
-    Page<Follow> findFollowersOrderedByName(
-            @Param("user") User user,
-            Pageable pageable);
+        @Query("SELECT f FROM Follow f WHERE f.followed = :user ORDER BY LOWER(f.follower.name) ASC")
+        Page<Follow> findFollowersOrderedByName(
+                        @Param("user") User user,
+                        Pageable pageable);
 
-    @Query("SELECT f FROM Follow f WHERE f.follower = :user ORDER BY LOWER(f.followed.name) ASC")
-    Page<Follow> findFollowingOrderedByName(
-            @Param("user") User user,
-            Pageable pageable);
+        @Query("SELECT f FROM Follow f WHERE f.follower = :user ORDER BY LOWER(f.followed.name) ASC")
+        Page<Follow> findFollowingOrderedByName(
+                        @Param("user") User user,
+                        Pageable pageable);
+
+        void deleteByFollowerAndFollowed(User follower, User followed);
 }

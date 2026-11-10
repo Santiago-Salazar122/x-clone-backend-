@@ -59,6 +59,31 @@ public class UserController {
                 return ResponseEntity.ok(results);
         }
 
+        @GetMapping("/me")
+        public ResponseEntity<Map<String, String>> getAuthenticatedUser(
+                        jakarta.servlet.http.HttpServletRequest request) {
+
+                Long userId = (Long) request.getAttribute("authenticatedUserId");
+
+                if (userId == null) {
+                        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                                        .body(Map.of("message", "Sesión no válida"));
+                }
+
+                User user = userService.findById(userId);
+
+                if (user == null) {
+                        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                        .body(Map.of("message", "Usuario no encontrado"));
+                }
+
+                return ResponseEntity.ok(Map.of(
+                                "id", user.getId().toString(),
+                                "name", user.getName(),
+                                "username", user.getUsername(),
+                                "email", user.getEmail()));
+        }
+
         @GetMapping("/{username}")
         public ResponseEntity<Map<String, String>> getUserProfile(
                         @PathVariable String username) {

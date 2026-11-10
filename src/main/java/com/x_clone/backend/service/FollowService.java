@@ -141,4 +141,24 @@ public class FollowService {
 
         return followRepository.findFollowingOrderedByName(user, pageable);
     }
+
+    @Transactional
+    public void unfollowUser(Long followerId, String followedUsername) {
+        User follower = userRepository.findById(followerId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Usuario autenticado no encontrado"));
+
+        User followed = userRepository.findByUsername(
+                followedUsername.trim().replaceFirst("^@", "").toLowerCase());
+
+        if (followed == null) {
+            throw new IllegalArgumentException("Usuario no encontrado");
+        }
+
+        if (!followRepository.existsByFollowerAndFollowed(follower, followed)) {
+            throw new IllegalArgumentException("No sigues a este usuario");
+        }
+
+        followRepository.deleteByFollowerAndFollowed(follower, followed);
+    }
 }
